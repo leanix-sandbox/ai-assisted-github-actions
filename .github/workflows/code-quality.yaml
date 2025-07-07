@@ -1,0 +1,55 @@
+name: Code Quality
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch: ~
+
+jobs:
+  # Use ESLint to check for linting errors
+  lintCheck:
+    runs-on: [ubuntu-latest]
+    name: Linter (${{ matrix.path }})
+    strategy:
+      fail-fast: false
+      matrix:
+        path: [pr-summary, pr-review]
+    steps:
+      - name: Checkout source branch
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+          cache-dependency-path: ${{ matrix.path }}/package-lock.json
+      - run: npm install --frozen-lockfile
+        working-directory: ${{ matrix.path }}
+      - name: Run ESLint
+        run: npm run lint
+        working-directory: ${{ matrix.path }}
+
+  # Use Prettier to check for formatting errors
+  formatCheck:
+    runs-on: [ubuntu-latest]
+    name: Formatter (${{ matrix.path }})
+    strategy:
+      fail-fast: false
+      matrix:
+        path: [pr-summary, pr-review]
+    steps:
+      - name: Checkout source branch
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+          cache-dependency-path: ${{ matrix.path }}/package-lock.json
+      - run: npm install --frozen-lockfile
+        working-directory: ${{ matrix.path }}
+      - name: Run Prettier
+        run: npm run prettier
+        working-directory: ${{ matrix.path }}
