@@ -11,7 +11,7 @@ let promptTokens = 0
 let completionTokens = 0
 
 export function getModelName(): string {
-  return modelName || getConfig().model
+  return modelName
 }
 
 export function getPromptTokens(): number {

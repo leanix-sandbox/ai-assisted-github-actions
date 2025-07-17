@@ -30,7 +30,7 @@ const getConfig = (): Config => {
     footerText: "End of AI Review",
     previousResults: "hide",
     aicoreServiceKey: JSON.parse(aicoreServiceKey),
-    includeFiles: [],
+    includeFiles: ["**"],
     excludeFiles: [],
     model: "gpt-4o-mini",
     modelParameters: {},
