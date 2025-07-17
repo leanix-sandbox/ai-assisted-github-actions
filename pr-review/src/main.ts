@@ -120,7 +120,7 @@ export async function run(config: Config = getConfig()): Promise<void> {
     { role: "user", content: content.join("\n") },
   ]
   core.info(inspect(message, { depth: undefined, colors: true }))
-  const aiReview: AiReview = await aiCoreClient.chatCompletionWithJsonSchema(AiReview, message)
+  const aiReview: AiReview = await aiCoreClient.chatCompletionWithJsonSchema(AiReview, message, config)
   core.info(inspect(aiReview, { depth: undefined, colors: true }))
 
   core.startGroup(`Process the chat completion to create PR review comments`)
@@ -150,7 +150,7 @@ export async function run(config: Config = getConfig()): Promise<void> {
       }
 
       core.startGroup(`Ask LLM for a disclaimer text to add to the review description`)
-      const disclaimer = await aiCoreClient.chatCompletion([{ role: "user", content: config.disclaimerPrompt }])
+      const disclaimer = await aiCoreClient.chatCompletion([{ role: "user", content: config.disclaimerPrompt }], config)
       core.info(inspect(disclaimer, { depth: undefined, colors: true }))
       core.setOutput("disclaimer", disclaimer)
 

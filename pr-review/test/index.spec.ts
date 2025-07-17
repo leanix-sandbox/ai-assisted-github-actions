@@ -9,10 +9,6 @@ const getConfig = (): Config => {
 
   expect(typeof aicoreServiceKey).toBe("string")
 
-  // const parsedKey = ServiceKey.parse(JSON.stringify(aicoreServiceKey))
-
-  // expect(parsedKey).toBe({ das: "das" })
-
   return {
     userToken: process.env.GITHUB_TOKEN!,
     githubApiUrl: process.env.GITHUB_API_URL!,
@@ -32,9 +28,9 @@ const getConfig = (): Config => {
     aicoreServiceKey: JSON.parse(aicoreServiceKey),
     includeFiles: ["**"],
     excludeFiles: [],
-    model: "gpt-4o-mini",
+    model: "gpt-4o",
     modelParameters: {},
-    modelVersion: "",
+    modelVersion: "latest",
     deploymentConfig: {},
     showModelMetadataFooter: false,
     disclaimerPrompt: "",
@@ -45,11 +41,9 @@ describe("AI-Powered Code Review", () => {
   it("should returns a resolvable Promise", async () => {
     const config = getConfig()
 
-    // const doRun = async () => {
     const result = run(config)
     expect(result).toBeInstanceOf(Promise)
 
     await result
-    // }
-  })
+  }, 20_000)
 })

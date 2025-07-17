@@ -25,8 +25,9 @@ export function getCompletionTokens(): number {
 /**
  * Create a simple chat completion.
  */
-export async function chatCompletion(messages: ChatMessage[]): Promise<string> {
-  const config = getConfig()
+export async function chatCompletion(messages: ChatMessage[], config = getConfig()): Promise<string> {
+  modelName ||= config.model
+
   process.env.AICORE_SERVICE_KEY = JSON.stringify(config.aicoreServiceKey)
   try {
     core.info("Use the OrchestrationClient to call the model")
@@ -62,8 +63,9 @@ export async function chatCompletion(messages: ChatMessage[]): Promise<string> {
 /**
  * Create a chat completion that returns a JSON document with a given schema.
  */
-export async function chatCompletionWithJsonSchema<T extends z.ZodTypeAny>(zodSchema: T, messages: ChatMessage[]): Promise<z.infer<T>> {
-  const config = getConfig()
+export async function chatCompletionWithJsonSchema<T extends z.ZodTypeAny>(zodSchema: T, messages: ChatMessage[], config = getConfig()): Promise<z.infer<T>> {
+  modelName ||= config.model
+
   process.env.AICORE_SERVICE_KEY = JSON.stringify(config.aicoreServiceKey)
   const jsonSchema = zodToJsonSchema(zodSchema)
 
