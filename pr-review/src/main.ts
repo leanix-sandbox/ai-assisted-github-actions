@@ -8,7 +8,7 @@ import { minimatch, MinimatchOptions } from "minimatch"
 import { inspect } from "node:util"
 import parseDiff, { Chunk, File } from "parse-diff"
 import * as aiCoreClient from "./ai-core-client.js"
-import { Config } from "./config.js"
+import { Config, getConfig } from "./config.js"
 import { helpAIwithHunksInDiff, resolveHunkReferencesInComments } from "./hunk-reader.js"
 import { AiReview } from "./review.js"
 
@@ -17,7 +17,7 @@ import { AiReview } from "./review.js"
  * @returns {Promise<void>} Resolves when the action is complete.
  */
 // eslint-disable-next-line sonarjs/cognitive-complexity
-export async function run(config: Config): Promise<void> {
+export async function run(config: Config = getConfig()): Promise<void> {
   const markerStart = "<!-- ai-assisted-review-start -->"
   const markerEnd = "<!-- ai-assisted-review-end -->"
 
