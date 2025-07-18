@@ -1,6 +1,6 @@
 import * as github from "@actions/github"
-import { Config } from "src/config.ts"
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
+import { Config } from "../config.ts"
 import { initializeClientsAndOptions } from "./githubClient.ts"
 
 describe("initializeClientsAndOptions", () => {

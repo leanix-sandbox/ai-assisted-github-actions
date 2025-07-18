@@ -2,6 +2,7 @@ import { getServiceKeyFromEnv } from "src/helpers/read-from-env.ts"
 import { describe, expect, it } from "vitest"
 import type { Config } from "../src/config.ts"
 import { run } from "../src/main.ts"
+import { getServiceKeyFromEnv } from "../src/read-from-env.ts"
 
 const getConfig = (): Config => {
   const aicoreServiceKey = getServiceKeyFromEnv()
