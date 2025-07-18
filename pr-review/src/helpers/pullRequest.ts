@@ -13,16 +13,7 @@ export async function getPullRequestDetails(octokit: any, repoRef: any, config: 
   let base = config.baseSha || pullRequest.base.sha
   const head = config.headSha || pullRequest.head.sha
   if (config.displayMode === "review-comment-delta") {
-    core.info(`Searching for preceding review comments to set old head SHA as new base SHA`)
-    const previousReviews = await octokit.paginate(octokit.rest.pulls.listReviews, { ...repoRef, pull_number: config.prNumber })
-    const regex = new RegExp(`^${markerStart}\\s+<!-- (?<base>\\w+)\\.\\.\\.(?<head>\\w+) -->([\\s\\S]*?)${markerEnd}$`, "g")
-    previousReviews.forEach((comment: { body: string }) => {
-      ;[...(comment.body?.matchAll(regex) ?? [])].forEach(match => {
-        const commentBase = match.groups!.base
-        const commentHead = match.groups!.head
-        if (commentHead) base = commentHead !== head ? commentHead : commentBase
-      })
-    })
+    base = await readPreviousHeadFromComments(octokit, repoRef, config.prNumber, markerStart, markerEnd, head)
   }
   return { pullRequest, base, head }
 }
@@ -75,4 +66,24 @@ export async function getAndPreprocessDiff(
     }
   })
   return { content, processedFiles }
+}
+
+export async function readPreviousHeadFromComments(octokit: any, repoRef: any, prNumber: number, markerStart: string, markerEnd: string, currentHead: string): Promise<string> {
+  /**
+   * This finds the previous head SHA from the comments of the PR.
+   * The previous head SHA is used to determine the base SHA for the diff.
+   * Only the commits added since the previous review will be included in the diff. 
+   */
+  core.info(`Searching for preceding review comments to set old head SHA as new base SHA`)
+  const previousReviews = await octokit.paginate(octokit.rest.pulls.listReviews, { ...repoRef, pull_number: prNumber })
+  const regex = new RegExp(`^${markerStart}\\s+<!-- (?<base>\\w+)\\.\\.\\.(?<head>\\w+) -->([\\s\\S]*?)${markerEnd}$`, "g")
+  let base = currentHead
+  previousReviews.forEach((comment: { body?: string }) => {
+    ;[...(comment.body?.matchAll(regex) ?? [])].forEach(match => {
+      const commentBase = match.groups!.base
+      const commentHead = match.groups!.head
+      if (commentHead) base = commentHead !== currentHead ? commentHead : commentBase
+    })
+  })
+  return base
 }

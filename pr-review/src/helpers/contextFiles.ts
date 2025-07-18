@@ -2,7 +2,7 @@ import * as core from "@actions/core"
 import { minimatch, MinimatchOptions } from "minimatch"
 import { Config } from "../config.js"
 
-export async function getContextFilesContent(octokit: any, repoRef: any, pullRequest: any, config: Config, matchOptions: MinimatchOptions, content: string[]) {
+export async function getContextFilesContent(octokit: any, repoRef: any, pullRequest: any, config: Config, matchOptions: MinimatchOptions, userPrompt: string[]) {
   if (config.includeContextFiles.length > 0) {
     core.startGroup(`Get static files for PR`)
     const {
@@ -17,7 +17,7 @@ export async function getContextFilesContent(octokit: any, repoRef: any, pullReq
           const { data: blob } = await octokit.rest.git.getBlob({ ...repoRef, file_sha: file.sha, mediaType: { format: "raw" } })
           const result = [`Context file ${file.path}:`, "```", blob as unknown as string, "```", ""]
           core.info(result.join("\n"))
-          content.push(...result)
+          userPrompt.push(...result)
         }
       }
     }

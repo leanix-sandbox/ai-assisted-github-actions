@@ -1,6 +1,6 @@
 import * as core from "@actions/core"
 import { inspect } from "node:util"
-import { Config } from "./config.js"
+import { Config, getConfig } from "./config.js"
 import { generateAIReview, processAIReviewComments } from "./helpers/aiReview.js"
 import { getContextFilesContent } from "./helpers/contextFiles.js"
 import { initializeClientsAndOptions } from "./helpers/githubClient.js"
@@ -12,7 +12,7 @@ import { handleReviewDisplay } from "./helpers/reviewDisplay.js"
  * @returns {Promise<void>} Resolves when the action is complete.
  */
 // eslint-disable-next-line sonarjs/cognitive-complexity
-export async function run(config: Config): Promise<void> {
+export async function run(config: Config = getConfig()): Promise<void> {
   const { octokit, matchOptions, repoRef, markerStart, markerEnd } = initializeClientsAndOptions(config)
   core.startGroup("Create GitHub API & AI Core client")
   core.info(`Using the following configuration: ${inspect(config, { depth: undefined, colors: true })}`)
