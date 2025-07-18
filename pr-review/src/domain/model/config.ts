@@ -2,7 +2,7 @@ import * as core from "@actions/core"
 import { readFileSync } from "node:fs"
 import { parse } from "yaml"
 import { z } from "zod"
-import { DeploymentConfig, ModelName, ModelParameters, ServiceKey, ServiceKeyOrCredentials } from "./zod-schema.js"
+import { DeploymentConfig, ModelName, ModelParameters, ServiceKey, ServiceKeyOrCredentials } from "../schema/zod-schema.ts"
 
 export function getConfig() {
   if (process.env.NODE_ENV === "development") {

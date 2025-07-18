@@ -1,9 +1,9 @@
 import * as core from "@actions/core"
-import type { GraphQlQueryResponseData } from "@octokit/graphql"
 import { RestEndpointMethodTypes } from "@octokit/plugin-rest-endpoint-methods/dist-types/generated/parameters-and-response-types.js"
 import { inspect } from "node:util"
-import * as aiCoreClient from "../ai-core-client.js"
-import { AiReview } from "../review.js"
+import { AiReview } from "../../domain/model/review.ts"
+import * as aiCoreClient from "../ai/ai-core-client.ts"
+
 export async function handleReviewDisplay(
   octokit: any,
   repoRef: any,
@@ -51,21 +51,27 @@ export async function handleReviewDisplay(
     }
   }
 }
+
 async function hidePreviousComments(octokit: any, repoRef: any, prNumber: number, markerStart: string, markerEnd: string) {
   core.startGroup("Process previous reviews.")
 
-  await Promise.all((await octokit.paginate(octokit.rest.pulls.listReviews, { ...repoRef, pull_number: prNumber })).filter(markedComment).map(minimizeComment))
+  await Promise.all(
+    (await octokit.paginate(octokit.rest.pulls.listReviews, { ...repoRef, pull_number: prNumber }))
+      .filter((review: any) => markedComment(review, markerStart, markerEnd))
+      .map((review: any) => minimizeComment(octokit, review)),
+  )
 }
 
-function markedComment(review: RestEndpointMethodTypes["pulls"]["listReviews"]["response"]["data"][number], markerStart: string, markerEnd: string): boolean {
-  const includesMarkers = new RegExp(`^${markerStart}([\\s\\S]*?)${markerEnd}$`, "g")
+export function markedComment(review: { body?: string }, markerStart: string, markerEnd: string): boolean {
+  const includesMarkers = new RegExp(`^${markerStart}([\s\S]*?)${markerEnd}$`, "g")
   return !!review.body && includesMarkers.test(review.body)
 }
 
-function minimizeComment(review: RestEndpointMethodTypes["pulls"]["listReviews"]["response"]["data"][number], octokit: any): Promise<GraphQlQueryResponseData> {
+export function minimizeComment(octokit: any, review: { id: any; node_id: any }): Promise<any> {
   core.info(`Minimizing review ${review.id}`)
   return octokit.graphql(`mutation { minimizeComment(input: {classifier: OUTDATED, subjectId: "${review.node_id}"}) { minimizedComment { isMinimized } } }`)
 }
+
 export async function submitReview(octokit: any, repoRef: any, config: any, comments: any, reviewComment: string, head: string) {
   type CreateReviewParameter = RestEndpointMethodTypes["pulls"]["createReview"]["parameters"]
   const review: CreateReviewParameter = { ...repoRef, pull_number: config.prNumber, commit_id: head, event: "COMMENT", body: reviewComment, comments }
@@ -111,7 +117,7 @@ export async function generateReviewComment({
   return displayText
 }
 
-async function getDisclaimer(config: any) {
+export async function getDisclaimer(config: any) {
   core.startGroup(`Ask LLM for a disclaimer text to add to the review description`)
   const disclaimer = await aiCoreClient.chatCompletion([{ role: "user", content: config.disclaimerPrompt }])
   core.info(inspect(disclaimer, { depth: undefined, colors: true }))

@@ -4,7 +4,7 @@ import axios from "axios"
 import { inspect } from "node:util"
 import { z } from "zod"
 import { zodToJsonSchema } from "zod-to-json-schema"
-import { getConfig } from "./config.js"
+import { getConfig } from "../../domain/model/config.ts"
 
 let modelName = ""
 let promptTokens = 0

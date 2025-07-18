@@ -1,6 +1,6 @@
 import * as core from "@actions/core"
 import { minimatch, MinimatchOptions } from "minimatch"
-import { Config } from "../config.js"
+import { Config } from "../model/config.ts"
 
 export async function getContextFilesContent(octokit: any, repoRef: any, pullRequest: any, config: Config, matchOptions: MinimatchOptions, userPrompt: string[]) {
   if (config.includeContextFiles.length > 0) {

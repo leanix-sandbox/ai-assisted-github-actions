@@ -1,41 +1,29 @@
 import * as core from "@actions/core"
-import { RestEndpointMethodTypes } from "@octokit/action"
 import { File } from "parse-diff"
-import { AiReview } from "./review.js"
+import type { AiReview } from "../model/types.js"
 
-export type ReviewComment = Exclude<RestEndpointMethodTypes["pulls"]["createReview"]["parameters"]["comments"], undefined>[number]
-
-/** Because GitHub comments referencing a diff need to reference lines of the same hunk, we add/collect some metadata to find the corresponding hunk after AI processing */
-export function helpAIwithHunksInDiff(file: File): string {
-  const diff: string[] = []
-  let lineNo = 0
-
-  const fileStatus = file.deleted ? "deleted" : file.new ? "added" : file.from !== file.to ? "renamed" : "modified" // eslint-disable-line sonarjs/no-nested-conditional
-  if (file.chunks.length > 0) {
-    diff.push("", `## Diff of the ${fileStatus} file \`${file.to ?? file.from}\``, "\n")
-    file.chunks.forEach(hunk => {
-      diff.push(`\`\`\``)
-      hunk.changes.forEach(change => {
-        diff.push(`line ${++lineNo}: ${change.content}`)
-      })
-      diff.push(`\`\`\``, "")
-    })
-  }
-  return diff.join("\n")
+export type ReviewComment = {
+  path: string
+  start_side?: string
+  side: string
+  start_line?: number
+  line: number
+  body: string
 }
 
-/** Map comments from the AI model to GitHub review comments and take care that a comment references only one single hunk */
+/**
+ * Map comments from the AI model to GitHub review comments and ensure a comment references only one single hunk.
+ */
 export function resolveHunkReferencesInComments(comments: AiReview["comments"], files: File[]): ReviewComment[] {
   const result: ReviewComment[] = []
-  // eslint-disable-next-line sonarjs/cognitive-complexity
-  comments.forEach(comment => {
+  comments.forEach((comment: any) => {
     const currentFile = files.find(file => file.from === comment.path || file.to === comment.path)
     if (!currentFile) {
       core.warning(`Could not find file for comment on ${comment.path}, start ${comment.start}, end ${comment.end}, ${comment.comment}, skipping.`)
     } else {
       const hunkChangeMap = currentFile.chunks.flatMap(hunk => hunk.changes.map(change => ({ change, hunk })))
-      let { change: startChange, hunk: startHunk } = hunkChangeMap[comment.start - 1] // eslint-disable-line prefer-const
-      let { change: endChange, hunk: endHunk } = hunkChangeMap[comment.end - 1] // eslint-disable-line prefer-const
+      let { change: startChange, hunk: startHunk } = hunkChangeMap[comment.start - 1]
+      let { change: endChange, hunk: endHunk } = hunkChangeMap[comment.end - 1]
 
       if (!startHunk) {
         core.warning(`Could not find hunk for comment on ${comment.path}, start ${comment.start}, end ${comment.end}, ${comment.comment}, skipping.`)
@@ -65,9 +53,9 @@ export function resolveHunkReferencesInComments(comments: AiReview["comments"], 
 
         result.push({
           path: comment.path,
-          start_side: startSide !== endSide ? startSide : undefined, // only set start_side if it is a multi-line comment
+          start_side: startSide !== endSide ? startSide : undefined,
           side: startSide !== endSide ? endSide : startSide,
-          start_line: start !== end && start < end ? start : undefined, // only set start_line if it is a multi-line comment, start must be less than end
+          start_line: start !== end && start < end ? start : undefined,
           line: start !== end && start < end ? end : start,
           body: comment.comment,
         })

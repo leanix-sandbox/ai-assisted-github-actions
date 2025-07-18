@@ -1,10 +1,10 @@
 import * as core from "@actions/core"
 import { ChatMessage } from "@sap-ai-sdk/orchestration"
 import { inspect } from "node:util"
-import * as aiCoreClient from "../ai-core-client.js"
-import { Config } from "../config.js"
-import { resolveHunkReferencesInComments } from "../hunk-reader.js"
-import { AiReview } from "../review.js"
+import { Config } from "../../domain/model/config.ts"
+import { AiReview } from "../../domain/model/review.ts"
+import { resolveHunkReferencesInComments } from "../../domain/service/resolveHunkReferencesInComments.js"
+import * as aiCoreClient from "./ai-core-client.ts"
 
 export async function generateAIReview(config: Config, userPrompt: string[]) {
   core.startGroup(`Ask LLM for review based on the diff/patch of the PR`)

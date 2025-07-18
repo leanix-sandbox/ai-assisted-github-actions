@@ -1,11 +1,11 @@
 import * as core from "@actions/core"
 import { inspect } from "node:util"
-import { Config, getConfig } from "./config.js"
-import { generateAIReview, processAIReviewComments } from "./helpers/aiReview.js"
-import { getContextFilesContent } from "./helpers/contextFiles.js"
-import { initializeClientsAndOptions } from "./helpers/githubClient.js"
-import { getAndPreprocessDiff, getPullRequestDetails } from "./helpers/pullRequest.js"
-import { handleReviewDisplay } from "./helpers/reviewDisplay.js"
+import { Config, getConfig } from "./domain/model/config.ts"
+import { getContextFilesContent } from "./domain/service/contextFiles.ts"
+import { generateAIReview, processAIReviewComments } from "./io/ai/aiReview.js"
+import { initializeClientsAndOptions } from "./io/github/githubClient.js"
+import { getAndPreprocessDiff, getPullRequestDetails } from "./io/github/pullRequest.js"
+import { handleReviewDisplay } from "./io/github/reviewDisplay.js"
 
 /**
  * The main function for the action.

@@ -1,10 +1,9 @@
 import * as core from "@actions/core"
-import { inspect } from "node:util"
-import { Config } from "../config.js"
-
 import { minimatch, MinimatchOptions } from "minimatch"
+import { inspect } from "node:util"
 import parseDiff, { Chunk, File } from "parse-diff"
-import { helpAIwithHunksInDiff } from "../hunk-reader.js"
+import { Config } from "../../domain/model/config.ts"
+import { helpAIwithHunksInDiff } from "../../domain/service/hunk-reader.ts"
 
 export async function getPullRequestDetails(octokit: any, repoRef: any, config: Config, markerStart: string, markerEnd: string) {
   core.info(`Get PR #${config.prNumber} from ${repoRef.owner}/${repoRef.repo}`)
@@ -68,12 +67,14 @@ export async function getAndPreprocessDiff(
   return { content, processedFiles }
 }
 
-export async function readPreviousHeadFromComments(octokit: any, repoRef: any, prNumber: number, markerStart: string, markerEnd: string, currentHead: string): Promise<string> {
-  /**
-   * This finds the previous head SHA from the comments of the PR.
-   * The previous head SHA is used to determine the base SHA for the diff.
-   * Only the commits added since the previous review will be included in the diff. 
-   */
+export async function readPreviousHeadFromComments(
+  octokit: any,
+  repoRef: any,
+  prNumber: number,
+  markerStart: string,
+  markerEnd: string,
+  currentHead: string,
+): Promise<string> {
   core.info(`Searching for preceding review comments to set old head SHA as new base SHA`)
   const previousReviews = await octokit.paginate(octokit.rest.pulls.listReviews, { ...repoRef, pull_number: prNumber })
   const regex = new RegExp(`^${markerStart}\\s+<!-- (?<base>\\w+)\\.\\.\\.(?<head>\\w+) -->([\\s\\S]*?)${markerEnd}$`, "g")
