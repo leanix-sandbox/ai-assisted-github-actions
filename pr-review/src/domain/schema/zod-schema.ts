@@ -16,7 +16,6 @@ export const ServiceKey = z
     url: z.string(),
   })
   .catchall(z.any())
-export type ServiceKey = z.infer<typeof ServiceKey>
 
 // ServiceKeyOrCredentials
 export const ServiceKeyOrCredentials = z.union([
@@ -25,16 +24,12 @@ export const ServiceKeyOrCredentials = z.union([
     credentials: ServiceKey,
   }),
 ])
-export type ServiceKeyOrCredentials = z.infer<typeof ServiceKeyOrCredentials>
 
 // ModelName
 export const ModelName: ZodType<ChatModel> = z.string()
-export type ModelName = z.infer<typeof ModelName>
 
 // DeploymentConfig
 export const DeploymentConfig: ZodType<ResourceGroupConfig> = z.record(z.any())
-export type DeploymentConfig = z.infer<typeof DeploymentConfig>
 
 // ModelParameters
 export const ModelParameters: ZodType<LlmModelParams> = z.record(z.any())
-export type ModelParameters = z.infer<typeof ModelParameters>

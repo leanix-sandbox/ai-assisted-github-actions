@@ -1,9 +1,6 @@
 import * as core from "@actions/core"
-import { RestEndpointMethodTypes } from "@octokit/action"
 import { File } from "parse-diff"
-import { AiReview } from "./review.js"
-
-export type ReviewComment = Exclude<RestEndpointMethodTypes["pulls"]["createReview"]["parameters"]["comments"], undefined>[number]
+import { AiReview, ReviewComment } from "../model/types.ts"
 
 /** Because GitHub comments referencing a diff need to reference lines of the same hunk, we add/collect some metadata to find the corresponding hunk after AI processing */
 export function helpAIwithHunksInDiff(file: File): string {
@@ -14,28 +11,40 @@ export function helpAIwithHunksInDiff(file: File): string {
   if (file.chunks.length > 0) {
     diff.push("", `## Diff of the ${fileStatus} file \`${file.to ?? file.from}\``, "\n")
     file.chunks.forEach(hunk => {
-      diff.push(`\`\`\``)
+      diff.push("```")
       hunk.changes.forEach(change => {
         diff.push(`line ${++lineNo}: ${change.content}`)
       })
-      diff.push(`\`\`\``, "")
+      diff.push("```", "")
     })
   }
   return diff.join("\n")
 }
 
-/** Map comments from the AI model to GitHub review comments and take care that a comment references only one single hunk */
+/**
+ * Map comments from the AI model to GitHub review comments and ensure a comment references only one single hunk.
+ */
 export function resolveHunkReferencesInComments(comments: AiReview["comments"], files: File[]): ReviewComment[] {
   const result: ReviewComment[] = []
-  // eslint-disable-next-line sonarjs/cognitive-complexity
   comments.forEach(comment => {
     const currentFile = files.find(file => file.from === comment.path || file.to === comment.path)
     if (!currentFile) {
       core.warning(`Could not find file for comment on ${comment.path}, start ${comment.start}, end ${comment.end}, ${comment.comment}, skipping.`)
     } else {
       const hunkChangeMap = currentFile.chunks.flatMap(hunk => hunk.changes.map(change => ({ change, hunk })))
-      let { change: startChange, hunk: startHunk } = hunkChangeMap[comment.start - 1] // eslint-disable-line prefer-const
-      let { change: endChange, hunk: endHunk } = hunkChangeMap[comment.end - 1] // eslint-disable-line prefer-const
+
+      const startEntry = hunkChangeMap[comment.start - 1]
+      const endEntry = hunkChangeMap[comment.end - 1]
+      if (!startEntry) {
+        core.warning(`Could not find start change for comment on ${comment.path}, start ${comment.start}, skipping.`)
+        return
+      }
+      if (!endEntry) {
+        core.warning(`Could not find end change for comment on ${comment.path}, end ${comment.end}, skipping.`)
+        return
+      }
+      let { change: startChange, hunk: startHunk } = startEntry
+      let { change: endChange, hunk: endHunk } = endEntry
 
       if (!startHunk) {
         core.warning(`Could not find hunk for comment on ${comment.path}, start ${comment.start}, end ${comment.end}, ${comment.comment}, skipping.`)
