@@ -1,22 +1,11 @@
 import * as core from "@actions/core"
 import { RestEndpointMethodTypes } from "@octokit/plugin-rest-endpoint-methods/dist-types/generated/parameters-and-response-types.js"
 import { inspect } from "node:util"
-import { AiReview } from "../../domain/model/review.ts"
+import { ReviewDisplayContext } from "../../domain/model/types.ts"
 import * as aiCoreClient from "../ai/ai-core-client.ts"
 
-export async function handleReviewDisplay(
-  octokit: any,
-  repoRef: any,
-  config: any,
-  comments: any,
-  aiReview: AiReview,
-  pullRequest: any,
-  base: string,
-  head: string,
-  markerStart: string,
-  markerEnd: string,
-  processedFiles: any[],
-) {
+export async function handleReviewDisplay(ctx: ReviewDisplayContext) {
+  const { octokit, repoRef, config, comments, aiReview, pullRequest, base, head, markerStart, markerEnd, processedFiles } = ctx
   switch (config.displayMode) {
     case "review-comment":
     case "review-comment-delta": {

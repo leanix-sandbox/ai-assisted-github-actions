@@ -1,11 +1,12 @@
 import * as core from "@actions/core"
-import { minimatch, MinimatchOptions } from "minimatch"
+import { minimatch } from "minimatch"
 import { inspect } from "node:util"
 import parseDiff, { Chunk, File } from "parse-diff"
-import { Config } from "../../domain/model/config.ts"
+import { DiffResult, GithubContext, PullRequestDetails } from "../../domain/model/types.ts"
 import { helpAIwithHunksInDiff } from "../../domain/services/hunk-reader.ts"
 
-export async function getPullRequestDetails(octokit: any, repoRef: any, config: Config, markerStart: string, markerEnd: string) {
+export async function getPullRequestDetails(ctx: GithubContext): Promise<PullRequestDetails> {
+  const { octokit, repoRef, config, markerStart, markerEnd } = ctx
   core.info(`Get PR #${config.prNumber} from ${repoRef.owner}/${repoRef.repo}`)
   const { data: pullRequest } = await octokit.rest.pulls.get({ ...repoRef, pull_number: config.prNumber })
   core.info(inspect(pullRequest, { depth: undefined, colors: true }))
@@ -17,17 +18,8 @@ export async function getPullRequestDetails(octokit: any, repoRef: any, config: 
   return { pullRequest, base, head }
 }
 
-export async function getAndPreprocessDiff(
-  octokit: any,
-  repoRef: any,
-  pullRequest: any,
-  config: Config,
-  matchOptions: MinimatchOptions,
-  markerStart: string,
-  markerEnd: string,
-  base: string,
-  head: string,
-) {
+export async function getAndPreprocessDiff(ctx: GithubContext & PullRequestDetails): Promise<DiffResult> {
+  const { octokit, repoRef, config, matchOptions, markerStart, markerEnd, pullRequest, base, head } = ctx
   core.startGroup(`Preprocess PR diff/patch to help the model understand the changes`)
   core.info(`Get diff for PR #${config.prNumber} (${base}...${head})`)
   const processedFiles: File[] = []

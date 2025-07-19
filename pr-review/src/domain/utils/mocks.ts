@@ -1,4 +1,4 @@
-import { Config } from "../model/types.ts"
+import { Config } from "../model/config.ts"
 
 export function createMockConfig(): Config {
   return {
