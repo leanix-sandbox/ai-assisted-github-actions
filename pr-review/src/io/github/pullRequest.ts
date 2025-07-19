@@ -14,7 +14,7 @@ export async function getPullRequestDetails(ctx: GithubContext): Promise<PullReq
   let base = config.baseSha || pullRequest.base.sha
   const head = config.headSha || pullRequest.head.sha
   if (config.displayMode === "review-comment-delta") {
-    base = await readPreviousHeadFromComments(octokit, repoRef, config.prNumber, markerStart, markerEnd, head)
+    base = (await readPreviousHeadFromComments(ctx, head)) ?? base
   }
   return { pullRequest, base, head }
 }
@@ -55,24 +55,20 @@ export async function getAndPreprocessDiff(ctx: GithubContext, matchOptions: Min
   return { userPrompt, processedFiles }
 }
 
-export async function readPreviousHeadFromComments(
-  octokit: any,
-  repoRef: any,
-  prNumber: number,
-  markerStart: string,
-  markerEnd: string,
-  currentHead: string,
-): Promise<string> {
+export async function readPreviousHeadFromComments(githubContext: GithubContext, head: string): Promise<string | undefined> {
   core.info(`Searching for preceding review comments to set old head SHA as new base SHA`)
-  const previousReviews = await octokit.paginate(octokit.rest.pulls.listReviews, { ...repoRef, pull_number: prNumber })
+  const { octokit, repoRef, config, markerStart, markerEnd } = githubContext
+  const previousReviews = await octokit.paginate(octokit.rest.pulls.listReviews, { ...repoRef, pull_number: config.prNumber })
   const regex = new RegExp(`^${markerStart}\\s+<!-- (?<base>\\w+)\\.\\.\\.(?<head>\\w+) -->([\\s\\S]*?)${markerEnd}$`, "g")
-  let head = currentHead
-  previousReviews.forEach((comment: { body?: string }) => {
+  let newBase: string | undefined
+  previousReviews.forEach((comment: { body: string }) => {
     ;[...(comment.body?.matchAll(regex) ?? [])].forEach(match => {
       const commentBase = match.groups!.base
       const commentHead = match.groups!.head
-      if (commentHead) head = commentHead !== currentHead ? commentHead : commentBase
+      if (commentHead) {
+        newBase = commentHead !== head ? commentHead : commentBase
+      }
     })
   })
-  return head
+  return newBase
 }

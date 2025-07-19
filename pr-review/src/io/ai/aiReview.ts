@@ -5,7 +5,7 @@ import parseDiff from "parse-diff"
 import { Config } from "../../domain/model/config.ts"
 import { AiReviewSchema } from "../../domain/model/review.ts"
 import { AiReview, ReviewComment } from "../../domain/model/types.ts"
-import { resolveHunkReferencesInComments } from "../../domain/services/resolveHunkReferencesInComments.ts"
+import { resolveHunkReferencesInComments } from "../../domain/services/hunk-reader.ts"
 import * as aiCoreClient from "./ai-core-client.ts"
 
 export async function generateAIReview(config: Config, userPrompt: string[]): Promise<AiReview> {

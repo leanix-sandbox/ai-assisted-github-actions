@@ -1,6 +1,6 @@
 // Types, interfaces, and enums for the PR review domain
 import { GitHub } from "@actions/github/lib/utils.js"
-import { RestEndpointMethodTypes } from "@octokit/plugin-rest-endpoint-methods/dist-types/generated/parameters-and-response-types.js"
+import { RestEndpointMethodTypes } from "@octokit/action"
 import { MinimatchOptions } from "minimatch"
 import parseDiff from "parse-diff"
 import { z } from "zod"
