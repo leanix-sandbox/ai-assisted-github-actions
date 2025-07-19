@@ -3,7 +3,7 @@ import { minimatch, MinimatchOptions } from "minimatch"
 import { inspect } from "node:util"
 import parseDiff, { Chunk, File } from "parse-diff"
 import { Config } from "../../domain/model/config.ts"
-import { helpAIwithHunksInDiff } from "../../domain/service/hunk-reader.ts"
+import { helpAIwithHunksInDiff } from "../../domain/services/hunk-reader.ts"
 
 export async function getPullRequestDetails(octokit: any, repoRef: any, config: Config, markerStart: string, markerEnd: string) {
   core.info(`Get PR #${config.prNumber} from ${repoRef.owner}/${repoRef.repo}`)

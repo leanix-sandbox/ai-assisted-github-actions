@@ -3,7 +3,7 @@ import { ChatMessage } from "@sap-ai-sdk/orchestration"
 import { inspect } from "node:util"
 import { Config } from "../../domain/model/config.ts"
 import { AiReview } from "../../domain/model/review.ts"
-import { resolveHunkReferencesInComments } from "../../domain/service/resolveHunkReferencesInComments.js"
+import { resolveHunkReferencesInComments } from "../../domain/services/resolveHunkReferencesInComments.ts"
 import * as aiCoreClient from "./ai-core-client.ts"
 
 export async function generateAIReview(config: Config, userPrompt: string[]) {

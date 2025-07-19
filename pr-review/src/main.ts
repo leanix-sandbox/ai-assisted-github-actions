@@ -1,7 +1,7 @@
 import * as core from "@actions/core"
 import { inspect } from "node:util"
 import { Config, getConfig } from "./domain/model/config.ts"
-import { getContextFilesContent } from "./domain/service/contextFiles.ts"
+import { getContextFilesContent } from "./domain/services/contextFiles.ts"
 import { generateAIReview, processAIReviewComments } from "./io/ai/aiReview.js"
 import { initializeClientsAndOptions } from "./io/github/githubClient.js"
 import { getAndPreprocessDiff, getPullRequestDetails } from "./io/github/pullRequest.js"
