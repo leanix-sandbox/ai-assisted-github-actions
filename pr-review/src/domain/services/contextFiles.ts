@@ -1,9 +1,14 @@
 import * as core from "@actions/core"
-import { minimatch } from "minimatch"
-import { ContextFilesContentParams } from "../model/types.ts"
+import { minimatch, MinimatchOptions } from "minimatch"
+import { GithubContext, PullRequestDetailsWithBaseAndHead } from "../model/types.ts"
 
-export async function getContextFilesContent(ctx: ContextFilesContentParams) {
-  const { octokit, repoRef, config, matchOptions, pullRequest } = ctx
+export async function getContextFilesContent(
+  githubCtx: GithubContext,
+  matchOptions: MinimatchOptions,
+  pullRequestDetailsWithBaseAndHead: PullRequestDetailsWithBaseAndHead,
+): Promise<string[]> {
+  const { octokit, repoRef, config } = githubCtx
+  const { pullRequest, base, head } = pullRequestDetailsWithBaseAndHead
   const resultContextFiles = []
   if (config.includeContextFiles.length > 0) {
     core.startGroup(`Get static files for PR`)

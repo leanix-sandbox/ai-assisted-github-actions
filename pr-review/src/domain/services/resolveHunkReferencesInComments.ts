@@ -1,15 +1,7 @@
 import * as core from "@actions/core"
 import { File } from "parse-diff"
 import type { AiReview } from "../model/types.ts"
-
-export type ReviewComment = {
-  path: string
-  start_side?: string
-  side: string
-  start_line?: number
-  line: number
-  body: string
-}
+import { ReviewComment } from "../model/types.ts"
 
 /**
  * Map comments from the AI model to GitHub review comments and ensure a comment references only one single hunk.

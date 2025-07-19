@@ -1,33 +1,24 @@
 import * as core from "@actions/core"
-import { RestEndpointMethodTypes } from "@octokit/plugin-rest-endpoint-methods/dist-types/generated/parameters-and-response-types.js"
 import { inspect } from "node:util"
-import { ReviewDisplayContext } from "../../domain/model/types.ts"
+import { CreateReviewParameter, GithubContext, PullRequestDetailsWithBaseAndHead, ReviewComment } from "../../domain/model/types.ts"
 import * as aiCoreClient from "../ai/ai-core-client.ts"
 
-export async function handleReviewDisplay(ctx: ReviewDisplayContext) {
-  const { octokit, repoRef, config, comments, aiReview, pullRequest, base, head, markerStart, markerEnd, processedFiles } = ctx
+export async function handleReviewDisplay(githubContext: GithubContext, pullRequestDetails: PullRequestDetailsWithBaseAndHead, comments: ReviewComment[]) {
+  const { octokit, repoRef, config, markerStart, markerEnd } = githubContext
   switch (config.displayMode) {
     case "review-comment":
     case "review-comment-delta": {
       if (config.previousResults === "hide") {
-        await hidePreviousComments(octokit, repoRef, config.prNumber, markerStart, markerEnd)
+        core.startGroup("Process previous reviews.")
+
+        await hidePreviousComments({ octokit, repoRef, config, markerStart, markerEnd })
       }
 
       const disclaimer = await getDisclaimer(config)
-      core.setOutput("disclaimer", disclaimer)
 
-      const reviewComment = await generateReviewComment({
-        base,
-        head,
-        config,
-        pullRequest,
-        markerStart,
-        markerEnd,
-        getDisclaimerFn: async () => disclaimer,
-        aiCoreClient,
-      })
+      const displayText = await generateDisplayText(githubContext, pullRequestDetails, disclaimer)
 
-      await submitReview(octokit, repoRef, config, comments, reviewComment, head)
+      await submitReview(githubContext, comments, displayText, pullRequestDetails.head)
 
       break
     }
@@ -41,13 +32,17 @@ export async function handleReviewDisplay(ctx: ReviewDisplayContext) {
   }
 }
 
-async function hidePreviousComments(octokit: any, repoRef: any, prNumber: number, markerStart: string, markerEnd: string) {
-  core.startGroup("Process previous reviews.")
-
+async function hidePreviousComments(githubContext: GithubContext) {
+  const { octokit, repoRef, config, markerStart, markerEnd } = githubContext
+  const previousReviews = await octokit.paginate(octokit.rest.pulls.listReviews, { ...repoRef, pull_number: config.prNumber })
+  const regex = new RegExp(`^${markerStart}([\\s\\S]*?)${markerEnd}$`, "g")
   await Promise.all(
-    (await octokit.paginate(octokit.rest.pulls.listReviews, { ...repoRef, pull_number: prNumber }))
-      .filter((review: any) => markedComment(review, markerStart, markerEnd))
-      .map((review: any) => minimizeComment(octokit, review)),
+    previousReviews.map(async (review: { body: string; id: any; node_id: any }) => {
+      if (regex.test(review.body)) {
+        core.info(`Minimizing review ${review.id}`)
+        await octokit.graphql(`mutation { minimizeComment(input: {classifier: OUTDATED, subjectId: "${review.node_id}"}) { minimizedComment { isMinimized } } }`)
+      }
+    }),
   )
 }
 
@@ -61,8 +56,8 @@ export function minimizeComment(octokit: any, review: { id: any; node_id: any })
   return octokit.graphql(`mutation { minimizeComment(input: {classifier: OUTDATED, subjectId: "${review.node_id}"}) { minimizedComment { isMinimized } } }`)
 }
 
-export async function submitReview(octokit: any, repoRef: any, config: any, comments: any, reviewComment: string, head: string) {
-  type CreateReviewParameter = RestEndpointMethodTypes["pulls"]["createReview"]["parameters"]
+export async function submitReview(githubContext: GithubContext, comments: ReviewComment[], reviewComment: string, head: string) {
+  const { octokit, repoRef, config } = githubContext
   const review: CreateReviewParameter = { ...repoRef, pull_number: config.prNumber, commit_id: head, event: "COMMENT", body: reviewComment, comments }
   core.info(inspect(review, { depth: undefined, colors: true }))
   const { data: result } = await octokit.rest.pulls.createReview(review)
@@ -71,29 +66,16 @@ export async function submitReview(octokit: any, repoRef: any, config: any, comm
   core.setOutput("review", result)
 }
 
-export async function generateReviewComment({
-  base,
-  head,
-  config,
-  pullRequest,
-  markerStart,
-  markerEnd,
-  getDisclaimerFn,
-  aiCoreClient,
-}: {
-  base: string
-  head: string
-  config: any
-  pullRequest: any
-  markerStart: string
-  markerEnd: string
-  getDisclaimerFn: () => Promise<string>
-  aiCoreClient: any
-}): Promise<string> {
+export async function generateDisplayText(
+  githubContext: GithubContext,
+  pullRequestDetailsWithBaseAndHead: PullRequestDetailsWithBaseAndHead,
+  disclaimer: string,
+): Promise<string> {
   core.startGroup(`Create a PR review as comment with the generated comments`)
+  const { config, markerStart, markerEnd } = githubContext
+  const { pullRequest, base, head } = pullRequestDetailsWithBaseAndHead
   const baseheadMaker = `<!-- ${base}...${head} -->`
   const header = config.headerText ? `${config.headerText}\n` : ""
-  const disclaimer = await getDisclaimerFn()
   const footer = config.footerText ? `\n${config.footerText}` : ""
   const metadata = [
     `Model: ${aiCoreClient.getModelName()}`,

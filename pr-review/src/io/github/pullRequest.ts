@@ -1,11 +1,12 @@
 import * as core from "@actions/core"
-import { minimatch } from "minimatch"
+import { MinimatchOptions } from "minimatch"
 import { inspect } from "node:util"
 import parseDiff, { Chunk, File } from "parse-diff"
-import { DiffResult, GithubContext, PullRequestDetails } from "../../domain/model/types.ts"
+import { DiffResult, GithubContext, PullRequestDetailsWithBaseAndHead } from "../../domain/model/types.ts"
 import { helpAIwithHunksInDiff } from "../../domain/services/hunk-reader.ts"
+import { diffInScope } from "../../domain/utils/diffProcessing.ts"
 
-export async function getPullRequestDetails(ctx: GithubContext): Promise<PullRequestDetails> {
+export async function getPullRequestDetails(ctx: GithubContext): Promise<PullRequestDetailsWithBaseAndHead> {
   const { octokit, repoRef, config, markerStart, markerEnd } = ctx
   core.info(`Get PR #${config.prNumber} from ${repoRef.owner}/${repoRef.repo}`)
   const { data: pullRequest } = await octokit.rest.pulls.get({ ...repoRef, pull_number: config.prNumber })
@@ -18,45 +19,40 @@ export async function getPullRequestDetails(ctx: GithubContext): Promise<PullReq
   return { pullRequest, base, head }
 }
 
-export async function getAndPreprocessDiff(ctx: GithubContext & PullRequestDetails): Promise<DiffResult> {
-  const { octokit, repoRef, config, matchOptions, markerStart, markerEnd, pullRequest, base, head } = ctx
+export async function getAndPreprocessDiff(ctx: GithubContext, matchOptions: MinimatchOptions, prDetails: PullRequestDetailsWithBaseAndHead): Promise<DiffResult> {
+  const { octokit, repoRef, config } = ctx
+  const { pullRequest, base, head } = prDetails
   core.startGroup(`Preprocess PR diff/patch to help the model understand the changes`)
   core.info(`Get diff for PR #${config.prNumber} (${base}...${head})`)
   const processedFiles: File[] = []
   const { data: diff } = await octokit.rest.repos.compareCommits({ ...repoRef, base: pullRequest.base.sha, head, mediaType: { format: "diff" } })
-  let comparison = parseDiff(diff as unknown as string)
+  let diffFiles = parseDiff(diff as unknown as string)
 
   if (config.displayMode === "review-comment-delta" && base !== pullRequest.base.sha) {
     core.info("Looking for chunks already reviewed in previous review to remove them from the diff")
     const { data: previousDiff } = await octokit.rest.repos.compareCommits({ ...repoRef, base: pullRequest.base.sha, head: base, mediaType: { format: "diff" } })
-    const previousComparison = parseDiff(previousDiff as unknown as string)
+    const previousDiffFiles = parseDiff(previousDiff as unknown as string)
     const createPatch = (hunk: Chunk) => hunk.changes.map(c => c.content).join("\n")
-    comparison.forEach(file => {
-      const previousFile = previousComparison.find(f => f.from === file.from && f.to === file.to)
+    diffFiles.forEach(file => {
+      const previousFile = previousDiffFiles.find(f => f.from === file.from && f.to === file.to)
       if (previousFile) {
         file.chunks = file.chunks.filter(hunk => !previousFile?.chunks.some(previousHunk => createPatch(hunk) === createPatch(previousHunk)))
       }
     })
-    comparison = comparison.filter(file => file.chunks.length > 0)
+    diffFiles = diffFiles.filter(file => file.chunks.length > 0)
   }
 
-  const content: string[] = []
-  comparison.forEach(file => {
-    const fileName = file.from === file.to ? file.from : `${file.from} → ${file.to}`
-    if (!config.includeFiles.some(pattern => (file.from && minimatch(file.from, pattern, matchOptions)) || (file.to && minimatch(file.to, pattern, matchOptions)))) {
-      core.info(`Skipping ${fileName} (not included).`)
-    } else if (config.excludeFiles.some(pattern => file.to && minimatch(file.to, pattern, matchOptions))) {
-      core.info(`Skipping ${fileName} (is excluded).`)
-    } else if (!file.chunks?.length) {
-      core.info(`Skipping ${fileName} (has no patch).`)
-    } else {
+  const userPrompt: string[] = []
+  diffFiles
+    .filter(file => diffInScope(file, config, matchOptions))
+    .forEach(file => {
+      const fileName = file.from === file.to ? file.from : `${file.from} → ${file.to}`
       core.info(`Reading diff/patch of ${fileName}.`)
       const preprocessedDiff = helpAIwithHunksInDiff(file)
       processedFiles.push(file)
-      content.push(preprocessedDiff)
-    }
-  })
-  return { content, processedFiles }
+      userPrompt.push(preprocessedDiff)
+    })
+  return { userPrompt, processedFiles }
 }
 
 export async function readPreviousHeadFromComments(
@@ -70,13 +66,13 @@ export async function readPreviousHeadFromComments(
   core.info(`Searching for preceding review comments to set old head SHA as new base SHA`)
   const previousReviews = await octokit.paginate(octokit.rest.pulls.listReviews, { ...repoRef, pull_number: prNumber })
   const regex = new RegExp(`^${markerStart}\\s+<!-- (?<base>\\w+)\\.\\.\\.(?<head>\\w+) -->([\\s\\S]*?)${markerEnd}$`, "g")
-  let base = currentHead
+  let head = currentHead
   previousReviews.forEach((comment: { body?: string }) => {
     ;[...(comment.body?.matchAll(regex) ?? [])].forEach(match => {
       const commentBase = match.groups!.base
       const commentHead = match.groups!.head
-      if (commentHead) base = commentHead !== currentHead ? commentHead : commentBase
+      if (commentHead) head = commentHead !== currentHead ? commentHead : commentBase
     })
   })
-  return base
+  return head
 }

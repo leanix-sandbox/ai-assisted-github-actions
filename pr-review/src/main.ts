@@ -1,7 +1,6 @@
 import * as core from "@actions/core"
-import { inspect } from "node:util"
 import { Config, getConfig } from "./domain/model/config.ts"
-import { GithubContext, PullRequestDetails } from "./domain/model/types.ts"
+import { GithubContext, PullRequestDetailsWithBaseAndHead } from "./domain/model/types.ts"
 import { getContextFilesContent } from "./domain/services/contextFiles.ts"
 import { generateAIReview, processAIReviewComments } from "./io/ai/aiReview.js"
 import { initializeClientsAndOptions } from "./io/github/githubClient.js"
@@ -15,25 +14,20 @@ import { handleReviewDisplay } from "./io/github/reviewDisplay.js"
 // eslint-disable-next-line sonarjs/cognitive-complexity
 export async function run(config: Config = getConfig()): Promise<void> {
   const { octokit, matchOptions, repoRef, markerStart, markerEnd } = initializeClientsAndOptions(config)
-  const githubCtx: GithubContext = { octokit, matchOptions, repoRef, markerStart, markerEnd, config }
-  core.startGroup("Create GitHub API & AI Core client")
-  core.info(`Using the following configuration: ${inspect(config, { depth: undefined, colors: true })}`)
+  const githubCtx: GithubContext = { octokit, repoRef, markerStart, markerEnd, config }
 
-  const prDetails: PullRequestDetails = await getPullRequestDetails(githubCtx)
+  const prDetails: PullRequestDetailsWithBaseAndHead = await getPullRequestDetails(githubCtx)
 
-  const { content, processedFiles } = await getAndPreprocessDiff({ ...githubCtx, ...prDetails })
+  const { userPrompt, processedFiles } = await getAndPreprocessDiff(githubCtx, matchOptions, prDetails)
 
-  if (content.length === 0) {
+  if (userPrompt.length === 0) {
     core.info("No diff/patch to process.")
     return
   }
-  core.info(content.join("\n"))
+  core.info(userPrompt.join("\n"))
 
-  const contextFilesContent = await getContextFilesContent({
-    ...githubCtx,
-    ...prDetails,
-  })
-  const mergedContent = [...contextFilesContent, ...content]
+  const contextFilesContent = await getContextFilesContent(githubCtx, matchOptions, prDetails)
+  const mergedContent = [...userPrompt, ...contextFilesContent]
   const aiReview = await generateAIReview(config, mergedContent)
 
   const comments = processAIReviewComments(aiReview, processedFiles)
@@ -42,12 +36,5 @@ export async function run(config: Config = getConfig()): Promise<void> {
     return
   }
 
-  await handleReviewDisplay({
-    ...githubCtx,
-    ...prDetails,
-    content,
-    processedFiles,
-    comments,
-    aiReview,
-  })
+  await handleReviewDisplay(githubCtx, prDetails, comments)
 }

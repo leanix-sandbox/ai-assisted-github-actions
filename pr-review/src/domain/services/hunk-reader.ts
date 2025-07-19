@@ -1,7 +1,4 @@
-import { RestEndpointMethodTypes } from "@octokit/action"
 import { File } from "parse-diff"
-
-export type ReviewComment = Exclude<RestEndpointMethodTypes["pulls"]["createReview"]["parameters"]["comments"], undefined>[number]
 
 /** Because GitHub comments referencing a diff need to reference lines of the same hunk, we add/collect some metadata to find the corresponding hunk after AI processing */
 export function helpAIwithHunksInDiff(file: File): string {

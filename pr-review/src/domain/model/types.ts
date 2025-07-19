@@ -1,11 +1,11 @@
 // Types, interfaces, and enums for the PR review domain
 import { GitHub } from "@actions/github/lib/utils.js"
+import { RestEndpointMethodTypes } from "@octokit/plugin-rest-endpoint-methods/dist-types/generated/parameters-and-response-types.js"
 import { MinimatchOptions } from "minimatch"
+import parseDiff from "parse-diff"
+import { z } from "zod"
 import { Config } from "./config.ts"
-
-export interface AiReview {
-  comments: any[]
-}
+import { AiReviewSchema } from "./review.ts"
 
 export interface RepoRef {
   owner: string
@@ -18,23 +18,31 @@ export interface GithubContext {
   config: Config
   markerStart: string
   markerEnd: string
+}
+
+export interface GithubContextWithMatchOptions extends GithubContext {
   matchOptions: MinimatchOptions
 }
 
-export interface PullRequestDetails {
-  pullRequest: any
+export interface PullRequestDetailsWithBaseAndHead {
+  pullRequest: any // TODO: Change type
   base: string
   head: string
 }
 
 export interface DiffResult {
-  content: string[]
-  processedFiles: any[]
+  userPrompt: string[]
+  processedFiles: parseDiff.File[]
 }
 
-export interface ReviewDisplayContext extends GithubContext, PullRequestDetails, DiffResult {
-  comments: any[]
-  aiReview: any
+export interface ReviewDisplayContext extends GithubContext, PullRequestDetailsWithBaseAndHead {
+  comments: ReviewComment[]
 }
 
-export interface ContextFilesContentParams extends GithubContext, PullRequestDetails {}
+export interface ContextFilesContentParams extends GithubContextWithMatchOptions, PullRequestDetailsWithBaseAndHead {}
+
+export type CreateReviewParameter = RestEndpointMethodTypes["pulls"]["createReview"]["parameters"]
+
+export type AiReview = z.infer<typeof AiReviewSchema>
+
+export type ReviewComment = Exclude<RestEndpointMethodTypes["pulls"]["createReview"]["parameters"]["comments"], undefined>[number]
