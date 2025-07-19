@@ -1,6 +1,6 @@
 import * as core from "@actions/core"
-import { Config, getConfig } from "./domain/model/config.ts"
-import { GithubContext, PullRequestDetailsWithBaseAndHead } from "./domain/model/types.ts"
+import { getConfig } from "./domain/model/config.ts"
+import { Config, GithubContext, PullRequestDetailsWithBaseAndHead } from "./domain/model/types.ts"
 import { getContextFilesContent } from "./domain/services/contextFiles.ts"
 import { generateAIReview, processAIReviewComments } from "./io/ai/aiReview.js"
 import { initializeClientsAndOptions } from "./io/github/githubClient.js"

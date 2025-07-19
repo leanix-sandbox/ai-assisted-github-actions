@@ -1,7 +1,6 @@
 import * as core from "@actions/core"
 import { File } from "parse-diff"
-import type { AiReview } from "../model/types.ts"
-import { ReviewComment } from "../model/types.ts"
+import { AiReview, ReviewComment } from "../model/types.ts"
 
 /** Because GitHub comments referencing a diff need to reference lines of the same hunk, we add/collect some metadata to find the corresponding hunk after AI processing */
 export function helpAIwithHunksInDiff(file: File): string {

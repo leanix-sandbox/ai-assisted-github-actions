@@ -1,7 +1,7 @@
 import * as core from "@actions/core"
 import { minimatch, MinimatchOptions } from "minimatch"
 import parseDiff from "parse-diff"
-import { Config } from "../model/config.ts"
+import { Config } from "../model/types.ts"
 
 export function diffInScope(file: parseDiff.File, config: Config, matchOptions: MinimatchOptions): boolean {
   const fileName = file.from === file.to ? file.from : `${file.from} → ${file.to}`

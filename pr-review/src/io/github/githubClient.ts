@@ -4,7 +4,7 @@ import { retry } from "@octokit/plugin-retry"
 import { throttling, ThrottlingOptions } from "@octokit/plugin-throttling"
 import { MinimatchOptions } from "minimatch"
 import { inspect } from "node:util"
-import { Config } from "../../domain/model/config.ts"
+import { Config } from "../../domain/model/types.ts"
 
 export function initializeClientsAndOptions(config: Config) {
   const markerStart = "<!-- ai-assisted-review-start -->"

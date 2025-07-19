@@ -4,8 +4,11 @@ import { RestEndpointMethodTypes } from "@octokit/action"
 import { MinimatchOptions } from "minimatch"
 import parseDiff from "parse-diff"
 import { z } from "zod"
-import { Config } from "./config.ts"
+import { DeploymentConfig, ModelName, ModelParameters, ServiceKey, ServiceKeyOrCredentials } from "../schema/zod-schema.ts"
+import { getConfig } from "./config.ts"
 import { AiReviewSchema } from "./review.ts"
+
+export type Config = ReturnType<typeof getConfig>
 
 export interface RepoRef {
   owner: string
@@ -46,3 +49,13 @@ export type CreateReviewParameter = RestEndpointMethodTypes["pulls"]["createRevi
 export type AiReview = z.infer<typeof AiReviewSchema>
 
 export type ReviewComment = Exclude<RestEndpointMethodTypes["pulls"]["createReview"]["parameters"]["comments"], undefined>[number]
+
+export type ServiceKey = z.infer<typeof ServiceKey>
+
+export type ServiceKeyOrCredentials = z.infer<typeof ServiceKeyOrCredentials>
+
+export type ModelName = z.infer<typeof ModelName>
+
+export type DeploymentConfig = z.infer<typeof DeploymentConfig>
+
+export type ModelParameters = z.infer<typeof ModelParameters>
