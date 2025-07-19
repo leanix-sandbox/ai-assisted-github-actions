@@ -8,7 +8,7 @@ export async function getContextFilesContent(
   pullRequestDetailsWithBaseAndHead: PullRequestDetailsWithBaseAndHead,
 ): Promise<string[]> {
   const { octokit, repoRef, config } = githubCtx
-  const { pullRequest, base, head } = pullRequestDetailsWithBaseAndHead
+  const { pullRequest } = pullRequestDetailsWithBaseAndHead
   const resultContextFiles = []
   if (config.includeContextFiles.length > 0) {
     core.startGroup(`Get static files for PR`)
