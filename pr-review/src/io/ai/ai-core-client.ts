@@ -4,9 +4,9 @@ import axios from "axios"
 import { inspect } from "node:util"
 import { z } from "zod"
 import { zodToJsonSchema } from "zod-to-json-schema"
-import { config } from "./config.js"
+import { getConfig } from "../../domain/model/config.ts"
 
-let modelName = config.model
+let modelName = ""
 let promptTokens = 0
 let completionTokens = 0
 
@@ -25,7 +25,9 @@ export function getCompletionTokens(): number {
 /**
  * Create a simple chat completion.
  */
-export async function chatCompletion(messages: ChatMessage[]): Promise<string> {
+export async function chatCompletion(messages: ChatMessage[], config = getConfig()): Promise<string> {
+  modelName ||= config.model
+
   process.env.AICORE_SERVICE_KEY = JSON.stringify(config.aicoreServiceKey)
   try {
     core.info("Use the OrchestrationClient to call the model")
@@ -45,7 +47,7 @@ export async function chatCompletion(messages: ChatMessage[]): Promise<string> {
     const completion = await orchestrationClient.chatCompletion()
     core.info(inspect(completion.data, { depth: undefined, colors: true }))
 
-    modelName = (completion.data?.module_results?.llm?.model_name as string) ?? modelName
+    modelName = (completion.data?.module_results?.llm?.model_name as string) ?? getModelName()
     const tokenUsage: TokenUsage = completion.getTokenUsage()
     promptTokens += tokenUsage.prompt_tokens
     completionTokens += tokenUsage.completion_tokens
@@ -61,7 +63,9 @@ export async function chatCompletion(messages: ChatMessage[]): Promise<string> {
 /**
  * Create a chat completion that returns a JSON document with a given schema.
  */
-export async function chatCompletionWithJsonSchema<T extends z.ZodTypeAny>(zodSchema: T, messages: ChatMessage[]): Promise<z.infer<T>> {
+export async function chatCompletionWithJsonSchema<T extends z.ZodTypeAny>(zodSchema: T, messages: ChatMessage[], config = getConfig()): Promise<z.infer<T>> {
+  modelName ||= config.model
+
   process.env.AICORE_SERVICE_KEY = JSON.stringify(config.aicoreServiceKey)
   const jsonSchema = zodToJsonSchema(zodSchema)
 
@@ -88,7 +92,7 @@ export async function chatCompletionWithJsonSchema<T extends z.ZodTypeAny>(zodSc
     core.info(inspect(completion.rawResponse.data, { depth: undefined, colors: true }))
     responseJson = `${completion.getContent()}`
 
-    modelName = (completion.data?.module_results?.llm?.model_name as string) ?? modelName
+    modelName = (completion.data?.module_results?.llm?.model_name as string) ?? getModelName()
     const tokenUsage: TokenUsage = completion.getTokenUsage()
     promptTokens += tokenUsage.prompt_tokens
     completionTokens += tokenUsage.completion_tokens

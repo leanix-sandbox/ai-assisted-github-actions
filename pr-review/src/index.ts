@@ -4,7 +4,6 @@
  */
 import * as core from "@actions/core"
 import { Circuit, Retry, RetryMode } from "mollitia"
-import { config } from "./config.js"
 import { run } from "./main.js"
 
 const circuit = new Circuit({
@@ -26,7 +25,7 @@ const circuit = new Circuit({
 })
 
 if (process.env.NODE_ENV === "development") {
-  run(config)
+  run()
 } else {
-  circuit.fn(run).execute(config)
+  circuit.fn(run).execute()
 }

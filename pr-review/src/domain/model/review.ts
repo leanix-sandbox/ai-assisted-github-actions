@@ -1,7 +1,7 @@
 import { z } from "zod"
 
 // define the JSON Schema of a Review by creating a zod object
-export const AiReview = z.object({
+export const AiReviewSchema = z.object({
   comments: z.array(
     z
       .object({
@@ -17,5 +17,4 @@ export const AiReview = z.object({
       .describe("List of comments on specific code parts."),
   ),
 })
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export type AiReview = z.infer<typeof AiReview>
+
