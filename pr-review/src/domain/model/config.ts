@@ -2,7 +2,8 @@ import * as core from "@actions/core"
 import { readFileSync } from "node:fs"
 import { parse } from "yaml"
 import { z } from "zod"
-import { DeploymentConfig, ModelName, ModelParameters, ServiceKey, ServiceKeyOrCredentials } from "./zod-schema.js"
+import { DeploymentConfig, ModelName, ModelParameters, ServiceKeyOrCredentials } from "../schema/zod-schema.ts"
+import { ServiceKey } from "./types.ts"
 
 export function getConfig() {
   if (process.env.NODE_ENV === "development") {
@@ -18,7 +19,7 @@ export function getConfig() {
     // eslint-disable-next-line @typescript-eslint/no-for-in-array, no-restricted-syntax, guard-for-in
     for (const key in actionYaml.inputs) {
       const envKey = `INPUT_${key.toUpperCase()}`
-      const envValue = actionYaml.inputs[key].default
+      const envValue = actionYaml.inputs[key]?.default
       if (envValue && !Object.keys(process.env).includes(envKey)) {
         process.env[envKey] = envValue
       }
@@ -153,4 +154,3 @@ export function getConfig() {
 
   return config
 }
-export type Config = ReturnType<typeof getConfig>
